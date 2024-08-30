@@ -1,0 +1,56 @@
+version: '3'
+services:
+    
+    api:
+        build: ./recommender-system-api-server
+        image: recommender-system:v0.1
+        ports:
+            - 5001:5000
+        restart: unless-stopped
+        links:
+            - postgres:postgres
+        networks:
+            - backend
+        volumes:
+             - ./recommender-system-api-server/app/:/opt/www/app/
+             - ./recommender-system-api-server/migrations/:/opt/www/migrations/
+             - ./recommender-system-api-server/config.py:/opt/www/config.py
+             - ./recommender-system-api-server/flask_restplus_patched/:/opt/www/flask_restplus_patched/
+
+    postgres:
+        image: postgres:12
+        restart: unless-stopped
+        environment:
+            - POSTGRES_DB=rs-apidb
+            - POSTGRES_PASSWORD=12345
+        ports:
+            - 5432
+        networks:
+            - backend
+        volumes:
+            - ./recommender-system-api-server/data/pgdata:/var/lib/postgresql/data
+            - ./recommender-system-api-server/data/conf/postgres/:/docker-entrypoint-initdb.d/
+
+    pgadmin:
+        image: adminer
+        links:
+          - postgres:postgres
+        depends_on:
+            - postgres
+        environment:
+            - PGADMIN_DEFAULT_EMAIL=api_user
+            - PGADMIN_DEFAULT_PASSWORD=password
+        volumes:
+           - ./recommender-system-api-server/data/pgadmin:/root/.pgadmin
+           - ./recommender-system-api-server/pgdump:/var/lib/pgadmin/storage/postgres
+        ports:
+          - 37505:5050
+          - 37808:8080
+          - 37443:443
+        networks:
+          - backend
+        restart: unless-stopped
+
+networks:
+    backend:
+        driver: bridge
